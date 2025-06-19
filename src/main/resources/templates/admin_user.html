@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Manage Users</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid white;
+            border-radius: 4px;
+            background: none;
+            cursor: pointer;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: white;
+            color: #333;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        form input, form select {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .update-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .cancel-button {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            flex-grow: 1;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .role-user {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .role-admin {
+            background-color: #fce4ec;
+            color: #c2185b;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #666;
+        }
+
+        .form-section {
+            display: none;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .password-note {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Admin Panel - Users</h1>
+    <nav>
+        <a href="/admin_category">Categories</a>
+        <a href="/admin_book">Books</a>
+        <a href="/admin_author">Authors</a>
+        <a href="/admin_order">Orders</a>
+        <a href="/admin_sale">Sale Codes</a>
+        <button onclick="logout()">Logout</button>
+    </nav>
+</header>
+
+<main>
+    <section id="update-form-section" class="form-section">
+        <h2>Update User</h2>
+        <form id="user-form">
+            <input type="hidden" id="user-id" />
+            <input type="text" id="username" placeholder="Username" required />
+            <input type="password" id="password" placeholder="New Password (leave empty to keep current)" />
+            <div class="password-note">
+                * Leave password field empty if you don't want to change it
+            </div>
+            <input type="text" id="role" placeholder="Role" readonly style="background-color: #f8f9fa;" />
+            <button type="submit" class="update-button">Update User</button>
+            <button type="button" class="cancel-button" onclick="cancelEdit()">Cancel</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Users List</h2>
+        <ul id="users-list"></ul>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2024 Bookstore. All rights reserved.</p>
+</footer>
+
+<script>
+    const apiBase = '/api/users';
+    let currentUserId = null;
+
+    function checkAuthStatus(requiredRole = null) {
+        const token = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+
+        console.log('Checking auth - Token exists:', !!token, 'User role:', userRole, 'Required role:', requiredRole);
+
+        if (!token) {
+            alert('Please log in to access this page.');
+            window.location.href = '/login';
+            return false;
+        }
+
+        if (requiredRole && userRole !== requiredRole) {
+            alert(`Access denied. This page requires ${requiredRole} role, but you have ${userRole} role.`);
+
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin_user';
+            } else if (userRole === 'USER') {
+                window.location.href = '/home';
+            } else {
+                window.location.href = '/login';
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    function logout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Logout response status:', response.status);
+            })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                alert('You have been logged out successfully.');
+                window.location.href = '/login';
+            });
+    }
+
+    function handleSessionExpiry() {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        if (!checkAuthStatus('ADMIN')) {
+            return;
+        }
+
+        getCurrentUserId();
+        loadUsers();
+    });
+
+    function getCurrentUserId() {
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/me`, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    throw new Error(`Failed to get current user: ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(user => {
+                if (user) {
+                    currentUserId = user.id;
+                    console.log('Current user ID:', currentUserId);
+                }
+            })
+            .catch(err => {
+                console.error('Failed to get current user:', err);
+            });
+    }
+
+    document.getElementById('user-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        updateUser();
+    });
+
+    function updateUser() {
+        const token = localStorage.getItem('authToken');
+        const id = document.getElementById('user-id').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('role').value;
+
+        if (!id) {
+            alert('No user selected for update');
+            return;
+        }
+
+        const body = {
+            id: parseInt(id),
+            username: username,
+            role: role
+        };
+
+        if (password && password.trim() !== '') {
+            body.password = password;
+        }
+
+        fetch(`${apiBase}/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Failed to update user: ${text}`);
+                    });
+                }
+                return res.json();
+            })
+            .then((data) => {
+                if (data) {
+                    alert('User updated successfully');
+                    cancelEdit();
+                    loadUsers();
+                }
+            })
+            .catch(err => {
+                console.error('Update error:', err);
+                alert(err.message);
+            });
+    }
+
+    function cancelEdit() {
+        document.getElementById('update-form-section').classList.remove('active');
+        document.getElementById('user-id').value = '';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('role').value = '';
+    }
+
+    function loadUsers() {
+        const token = localStorage.getItem('authToken');
+        console.log('Attempting to load users...');
+
+        fetch(apiBase, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        console.error('Error response body:', text);
+                        throw new Error(`HTTP ${res.status}: ${text}`);
+                    });
+                }
+                return res.json();
+            })
+            .then(users => {
+                if (users) {
+                    console.log('Received users:', users);
+                    const nonAdminUsers = users.filter(user => user.role !== 'ADMIN');
+                    displayUsers(nonAdminUsers);
+                }
+            })
+            .catch(err => {
+                console.error('Error loading users:', err);
+                alert(`Failed to load users: ${err.message}`);
+            });
+    }
+
+    function displayUsers(users) {
+        const list = document.getElementById('users-list');
+        list.innerHTML = '';
+
+        if (users.length === 0) {
+            const li = document.createElement('li');
+            li.innerHTML = '<em>No regular users found.</em>';
+            list.appendChild(li);
+            return;
+        }
+
+        users.forEach(user => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="user-info">
+                    <strong>ID: ${user.id}</strong><br/>
+                    <strong>Username:</strong> ${user.username}<br/>
+                    <span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span>
+                </div>
+                <div class="user-actions">
+                    <button class="update-button" onclick="editUser(${user.id})">Edit</button>
+                    <button class="delete-button" onclick="deleteUser(${user.id}, '${user.username}')">Delete</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function editUser(id) {
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/${id}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    throw new Error('Failed to load user details');
+                }
+                return res.json();
+            })
+            .then(user => {
+                if (!user) return;
+
+                document.getElementById('user-id').value = user.id;
+                document.getElementById('username').value = user.username;
+                document.getElementById('password').value = '';
+                document.getElementById('role').value = user.role;
+                document.getElementById('update-form-section').classList.add('active');
+
+
+                document.getElementById('update-form-section').scrollIntoView({
+                    behavior: 'smooth'
+                });
+            })
+            .catch(err => {
+                alert('Failed to load user details.');
+                console.error(err);
+            });
+    }
+
+    function deleteUser(id, username) {
+        if (currentUserId && parseInt(id) === currentUserId) {
+            alert('You cannot delete your own account!');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Failed to delete user: ${text}`);
+                    });
+                }
+                alert(`User "${username}" deleted successfully`);
+                loadUsers();
+            })
+            .catch(err => {
+                console.error('Delete error:', err);
+                alert(err.message);
+            });
+    }
+</script>
+</body>
+</html>

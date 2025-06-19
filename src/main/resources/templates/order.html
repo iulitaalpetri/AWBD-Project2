@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Order Details - Bookstore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav {
+            margin-top: 1rem;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            background: none;
+            border: 1px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: white;
+            color: #333;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #loading-message {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        #error-message {
+            text-align: center;
+            color: red;
+            font-size: 1.1rem;
+            margin: 1rem 0;
+        }
+
+        #order-header {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        #order-id {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        #order-date {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        #sale-section {
+            background-color: #e8f5e8;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        #sale-code {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #155724;
+            margin-bottom: 0.5rem;
+        }
+
+        #sale-discount {
+            font-size: 1.1rem;
+            color: #155724;
+        }
+
+        #no-sale-message {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        #order-summary {
+            background-color: #f9f9f9;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        #total-price {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c5530;
+            margin-bottom: 0.5rem;
+        }
+
+        #original-price {
+            font-size: 1.2rem;
+            color: #666;
+            text-decoration: line-through;
+            margin-bottom: 0.5rem;
+        }
+
+        #savings {
+            font-size: 1.1rem;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        #books-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #books-list li {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            padding: 1.5rem;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #books-list li:hover {
+            background-color: #e9e9e9;
+        }
+
+        .book-info {
+            flex-grow: 1;
+        }
+
+        .book-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .book-author {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .book-category {
+            color: #888;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        .book-price-section {
+            text-align: right;
+            margin-left: 1rem;
+        }
+
+        .book-original-price {
+            font-size: 1.1rem;
+            color: #666;
+            text-decoration: line-through;
+        }
+
+        .book-final-price {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c5530;
+        }
+
+        .book-discount-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+            display: inline-block;
+        }
+
+        .action-buttons {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .action-buttons button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 0.5rem;
+        }
+
+        .action-buttons button:hover {
+            background-color: #218838;
+        }
+
+        .action-buttons button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Order Details</h1>
+    <nav>
+        <button id="logout-button" style="display: none;" onclick="logout()">Logout</button>
+        <a href="/login" id="login-link">Login</a>
+        <a href="/register" id="register-link">Register</a>
+        <a href="/home">Home</a>
+        <a href="/profile">Profile</a>
+        <a href="/cart">Cart</a>
+        <a href="/wishlist">Wishlist</a>
+        <a href="/orderhistory">Order History</a>
+    </nav>
+</header>
+
+<main>
+    <section>
+        <div id="loading-message">Loading order details...</div>
+        <div id="error-message" style="display: none;">
+            Failed to load order details. Please try again later.
+        </div>
+
+        <div id="order-content" style="display: none;">
+            <div id="order-header">
+                <div id="order-id">Order #<span id="order-number"></span></div>
+                <div id="order-date">Placed on <span id="order-date-value"></span></div>
+            </div>
+
+            <div id="sale-section" style="display: none;">
+                <div id="sale-code">Sale Applied: <span id="sale-code-value"></span></div>
+                <div id="sale-discount"><span id="sale-discount-value"></span>% discount on eligible items</div>
+            </div>
+
+            <div id="no-sale-message">
+                No sale discount applied to this order
+            </div>
+
+            <div id="order-summary">
+                <div id="original-price" style="display: none;">Original Total: $<span id="original-price-value">0.00</span></div>
+                <div id="total-price">Total: $<span id="total-price-value">0.00</span></div>
+                <div id="savings" style="display: none;">You saved: $<span id="savings-value">0.00</span></div>
+            </div>
+
+            <ul id="books-list"></ul>
+
+            <div class="action-buttons">
+                <button id="send-order-btn" onclick="sendOrder()">Send Order</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2024 Bookstore. All rights reserved.</p>
+</footer>
+
+<script>
+    let orderData = null;
+
+    function getAuthToken() {
+        return window.authToken ||
+            (typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null) ||
+            'simulated-auth-token-12345';
+    }
+
+    function removeAuthToken() {
+        window.authToken = null;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('authToken');
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        if (!checkAuthStatus('USER')) {
+            return;
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('id') || urlParams.get('orderId') || urlParams.get('order');
+
+        console.log('Current URL:', window.location.href);
+        console.log('Order ID found:', orderId);
+
+        if (!orderId) {
+            console.error('No order ID found in URL parameters');
+            loadMostRecentOrder();
+            return;
+        }
+
+        loadOrder(orderId);
+    });
+
+    function loadMostRecentOrder() {
+        const token = getAuthToken();
+
+        fetch('/api/orders/history', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    alert('Your session has expired. Please log in again.');
+                    removeAuthToken();
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (response.status === 204) {
+                    throw new Error('No orders found');
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch order history');
+                }
+
+                return response.json();
+            })
+            .then(orders => {
+                if (!orders || orders.length === 0) {
+                    throw new Error('No orders found. Please access this page from your order history.');
+                }
+
+                const mostRecentOrder = orders[0];
+                console.log('Loading most recent order:', mostRecentOrder);
+
+                loadOrderBooks(mostRecentOrder);
+            })
+            .catch(error => {
+                console.error('Error loading most recent order:', error);
+                showError('No order ID specified. Please access this page from your order history or after completing a purchase.');
+            });
+    }
+
+    function checkAuthStatus(requiredRole = null) {
+        const token = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+
+        console.log('Checking auth - Token exists:', !!token, 'User role:', userRole, 'Required role:', requiredRole);
+
+        if (!token) {
+            alert('Please log in to access this page.');
+            window.location.href = '/login';
+            return false;
+        }
+
+        if (requiredRole && userRole !== requiredRole) {
+            alert(`Access denied. This page requires ${requiredRole} role, but you have ${userRole} role.`);
+
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin_user';
+            } else if (userRole === 'USER') {
+                window.location.href = '/home';
+            } else {
+                window.location.href = '/login';
+            }
+            return false;
+        }
+
+        document.getElementById('login-link').style.display = 'none';
+        document.getElementById('register-link').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'inline';
+
+        return true;
+    }
+    function loadOrder(orderId) {
+        const token = getAuthToken();
+        console.log('Loading order ID:', orderId);
+
+        fetch('/api/orders/history', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Order history response status:', response.status);
+
+                if (response.status === 401 || response.status === 403) {
+                    alert('Your session has expired. Please log in again.');
+                    removeAuthToken();
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (response.status === 204) {
+                    throw new Error('No orders found');
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch order history');
+                }
+
+                return response.json();
+            })
+            .then(orders => {
+                console.log('Orders received:', orders);
+
+                if (!orders || orders.length === 0) {
+                    throw new Error('No orders found');
+                }
+
+                const order = orders.find(o => o.id == orderId);
+                if (!order) {
+                    throw new Error('Order not found');
+                }
+
+                console.log('Found order:', order);
+                loadOrderBooks(order);
+            })
+            .catch(error => {
+                console.error('Error loading order:', error);
+                showError(error.message || 'Failed to load order details');
+            });
+    }
+
+    function loadOrderBooks(order) {
+        const token = getAuthToken();
+
+        fetch(`/api/orders/${order.id}/calculate-total`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    console.warn('Failed to calculate total price on backend');
+                }
+                return response.ok;
+            })
+            .then(() => {
+                return fetch(`/api/orders/${order.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch updated order');
+            })
+            .then(updatedOrder => {
+                console.log('Updated order with calculated total:', updatedOrder);
+                order.totalPrice = updatedOrder.totalPrice;
+
+                return loadBookDetails(order);
+            })
+            .catch(error => {
+                console.error('Error calculating total price:', error);
+                loadBookDetails(order);
+            });
+    }
+
+    function loadBookDetails(order) {
+        const token = getAuthToken();
+
+        const bookPromises = Array.from(order.bookIds).map(bookId => {
+            return fetch(`/api/books/${bookId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    console.warn(`Failed to fetch book ${bookId}`);
+                    return null;
+                });
+        });
+
+        Promise.all(bookPromises)
+            .then(books => {
+                const validBooks = books.filter(book => book !== null);
+                console.log('Books loaded:', validBooks);
+
+                const totalPrice = order.totalPrice !== undefined ? order.totalPrice :
+                    validBooks.reduce((sum, book) => sum + (book.price || 0), 0);
+
+                console.log('Final total price used:', totalPrice);
+
+                const orderWithBooks = {
+                    ...order,
+                    books: validBooks,
+                    totalPrice: totalPrice
+                };
+
+                orderData = orderWithBooks;
+                displayOrder(orderWithBooks);
+            })
+            .catch(error => {
+                console.error('Error loading order books:', error);
+                showError('Failed to load order books');
+            });
+    }
+
+    function displayOrder(order) {
+        console.log('Displaying order:', order);
+
+        document.getElementById('loading-message').style.display = 'none';
+        document.getElementById('error-message').style.display = 'none';
+        document.getElementById('order-content').style.display = 'block';
+
+        document.getElementById('order-number').textContent = order.id || order.userId || 'N/A';
+
+        if (order.orderDate) {
+            const orderDate = new Date(order.orderDate);
+            document.getElementById('order-date-value').textContent = orderDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        checkActiveSalesAndDisplayPricing(order);
+        displayBooks(order.books || []);
+    }
+
+    function checkActiveSalesAndDisplayPricing(order) {
+        const token = getAuthToken();
+
+        fetch('/api/sales/active', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Sales response status:', response.status);
+                if (response.ok) {
+                    return response.json();
+                }
+                return [];
+            })
+            .then(activeSales => {
+                console.log('Active sales received:', activeSales);
+
+                if (activeSales && activeSales.length > 0) {
+                    activeSales.forEach((sale, index) => {
+                        console.log(`Sale ${index}:`, {
+                            id: sale.id,
+                            saleCode: sale.saleCode,
+                            discountPercentage: sale.discountPercentage,
+                            isActive: sale.isActive,
+                            categoryIds: sale.categoryIds
+                        });
+                    });
+                }
+
+                displayOrderPricing(order, activeSales);
+            })
+            .catch(error => {
+                console.error('Error fetching active sales:', error);
+                displayOrderPricing(order, []);
+            });
+    }
+
+    function displayOrderPricing(order, activeSales) {
+        const books = order.books || [];
+        let originalTotal = 0;
+        let discountedTotal = 0;
+        let hasActiveDiscount = false;
+        let appliedSale = null;
+
+        books.forEach(book => {
+            originalTotal += book.price || 0;
+        });
+
+        if (activeSales && activeSales.length > 0) {
+            for (let sale of activeSales) {
+                if (sale.isActive && sale.categoryIds && sale.categoryIds.length > 0) {
+                    const hasEligibleBook = books.some(book =>
+                        book.categoryId && sale.categoryIds.includes(book.categoryId)
+                    );
+
+                    if (hasEligibleBook) {
+                        appliedSale = sale;
+                        hasActiveDiscount = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (hasActiveDiscount && appliedSale) {
+            books.forEach(book => {
+                const bookPrice = book.price || 0;
+                if (book.categoryId && appliedSale.categoryIds.includes(book.categoryId)) {
+                    const discountedPrice = bookPrice * (1 - appliedSale.discountPercentage / 100);
+                    discountedTotal += discountedPrice;
+                } else {
+                    discountedTotal += bookPrice;
+                }
+            });
+
+            document.getElementById('sale-section').style.display = 'block';
+            document.getElementById('sale-code-value').textContent = appliedSale.saleCode;
+            document.getElementById('sale-discount-value').textContent = appliedSale.discountPercentage;
+            document.getElementById('no-sale-message').style.display = 'none';
+
+            document.getElementById('original-price-value').textContent = originalTotal.toFixed(2);
+            document.getElementById('original-price').style.display = 'block';
+            document.getElementById('total-price-value').textContent = discountedTotal.toFixed(2);
+            document.getElementById('savings-value').textContent = (originalTotal - discountedTotal).toFixed(2);
+            document.getElementById('savings').style.display = 'block';
+        } else {
+            document.getElementById('sale-section').style.display = 'none';
+            document.getElementById('no-sale-message').style.display = 'block';
+            document.getElementById('total-price-value').textContent = originalTotal.toFixed(2);
+            document.getElementById('original-price').style.display = 'none';
+            document.getElementById('savings').style.display = 'none';
+        }
+
+        order.appliedSale = appliedSale;
+        order.originalTotal = originalTotal;
+        order.finalTotal = hasActiveDiscount ? discountedTotal : originalTotal;
+    }
+
+    function displayBooks(books) {
+        const booksList = document.getElementById('books-list');
+
+        if (!books || books.length === 0) {
+            booksList.innerHTML = '<li>No books found in this order</li>';
+            return;
+        }
+
+        let html = '';
+        books.forEach(book => {
+            const originalPrice = book.price || 0;
+            let finalPrice = originalPrice;
+            let isDiscounted = false;
+
+            if (orderData && orderData.appliedSale && book.categoryId) {
+                const sale = orderData.appliedSale;
+                if (sale.categoryIds && sale.categoryIds.includes(book.categoryId)) {
+                    finalPrice = originalPrice * (1 - sale.discountPercentage / 100);
+                    isDiscounted = true;
+                }
+            }
+
+            html += `
+                <li>
+                    <div class="book-info">
+                        <div class="book-title">${book.title || 'Unknown Title'}</div>
+                        <div class="book-author">by ${book.author || 'Unknown Author'}</div>
+                    </div>
+                    <div class="book-price-section">
+                        ${isDiscounted ? `<div class="book-original-price">$${originalPrice.toFixed(2)}</div>` : ''}
+                        <div class="book-final-price">$${finalPrice.toFixed(2)}</div>
+                        ${isDiscounted ? `<div class="book-discount-badge">${orderData.appliedSale.discountPercentage}% OFF</div>` : ''}
+                    </div>
+                </li>
+            `;
+        });
+
+        booksList.innerHTML = html;
+    }
+
+    function sendOrder() {
+        if (!orderData) {
+            alert('No order data available');
+            return;
+        }
+
+        const sendButton = document.getElementById('send-order-btn');
+        const originalText = sendButton.textContent;
+
+        sendButton.disabled = true;
+        sendButton.textContent = 'Sending Order...';
+
+        console.log('Sending order:', orderData);
+
+        setTimeout(() => {
+            console.log('Redirecting to order history...');
+            window.location.href = '/orderhistory';
+        }, 1000);
+    }
+
+    function showError(message) {
+        document.getElementById('loading-message').style.display = 'none';
+        document.getElementById('error-message').textContent = message;
+        document.getElementById('error-message').style.display = 'block';
+    }
+
+    function logout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Logout response status:', response.status);
+            })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                alert('You have been logged out successfully.');
+                window.location.href = '/login';
+            });
+    }
+</script>
+</body>
+</html>

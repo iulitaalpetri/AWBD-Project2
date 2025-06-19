@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Wishlist - Bookstore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav {
+            margin-top: 1rem;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            background: none;
+            border: 1px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: white;
+            color: #333;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #loading-message {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        #error-message {
+            text-align: center;
+            color: red;
+            font-size: 1.1rem;
+            margin: 1rem 0;
+        }
+
+        #empty-wishlist-message {
+            text-align: center;
+            color: #666;
+            font-size: 1.1rem;
+            margin: 1rem 0;
+        }
+
+        #books-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #books-list li {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            padding: 1.5rem;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #books-list li:hover {
+            background-color: #e9e9e9;
+        }
+
+        .book-info {
+            flex-grow: 1;
+        }
+
+        .book-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .book-author {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .book-price {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c5530;
+            margin-left: 1rem;
+            padding: 20px;
+        }
+
+
+
+        .remove-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .remove-button:hover {
+            background-color: #c82333;
+        }
+
+        .remove-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #666;
+        }
+
+    </style>
+</head>
+<body>
+<header>
+    <h1>Your Wishlist</h1>
+    <nav>
+        <button id="logout-button" style="display: none;" onclick="logout()">Logout</button>
+        <a href="/login" id="login-link">Login</a>
+        <a href="/register" id="register-link">Register</a>
+        <a href="/home">Home</a>
+        <a href="/profile">Profile</a>
+        <a href="/cart">Cart</a>
+        <a href="/orderhistory">Order History</a>
+    </nav>
+</header>
+
+<main>
+    <section>
+        <div id="loading-message">Loading your wishlist...</div>
+        <div id="error-message" style="display: none;">
+            Failed to load wishlist. Please try again later.
+        </div>
+        <div id="empty-wishlist-message" style="display: none;">
+            Your wishlist is empty. Start adding books you'd like to read!
+        </div>
+
+        <ul id="books-list"></ul>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2024 Bookstore. All rights reserved.</p>
+</footer>
+
+<script>
+    let wishlistData = [];
+
+    window.addEventListener('DOMContentLoaded', function() {
+        if (!checkAuthStatus('USER')) {
+            return;
+        }
+        loadWishlist();
+    });
+
+    function checkAuthStatus(requiredRole = null) {
+        const token = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+
+        console.log('Checking auth - Token exists:', !!token, 'User role:', userRole, 'Required role:', requiredRole);
+
+        if (!token) {
+            alert('Please log in to access this page.');
+            window.location.href = '/login';
+            return false;
+        }
+
+        if (requiredRole && userRole !== requiredRole) {
+            alert(`Access denied. This page requires ${requiredRole} role, but you have ${userRole} role.`);
+
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin_user';
+            } else if (userRole === 'USER') {
+                window.location.href = '/home';
+            } else {
+                window.location.href = '/login';
+            }
+            return false;
+        }
+
+        document.getElementById('login-link').style.display = 'none';
+        document.getElementById('register-link').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'inline';
+
+        return true;
+    }
+
+    function loadWishlist() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/wishlists/user', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    alert('Your session has expired. Please log in again.');
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (response.ok) {
+                    return response.json();
+                }
+
+                if (response.status === 404 || response.status === 204) {
+                    return [];
+                }
+
+                throw new Error(`Failed to fetch wishlist data: ${response.status}`);
+            })
+            .then(data => {
+                if (!data) return;
+                wishlistData = data || [];
+                displayWishlist(data || []);
+            })
+            .catch(error => {
+                console.error('Error loading wishlist:', error);
+                document.getElementById('loading-message').style.display = 'none';
+
+                if (wishlistData.length === 0) {
+                    displayWishlist([]);
+                } else {
+                    document.getElementById('error-message').style.display = 'block';
+                }
+            });
+    }
+
+    function displayWishlist(books) {
+        const booksList = document.getElementById('books-list');
+
+        document.getElementById('loading-message').style.display = 'none';
+        document.getElementById('error-message').style.display = 'none';
+        document.getElementById('empty-wishlist-message').style.display = 'none';
+
+        if (!books || books.length === 0) {
+            document.getElementById('empty-wishlist-message').style.display = 'block';
+            return;
+        }
+
+        let html = '';
+        books.forEach(book => {
+            html += `
+                <li>
+                    <div class="book-info">
+                        <div class="book-title">${book.title}</div>
+                        <div class="book-author">by ${book.authorName || book.author || 'Unknown Author'}</div>
+                    </div>
+                    <div class="book-price">${book.price.toFixed(2)}</div>
+                    <button class="remove-button" onclick="removeFromWishlist(${book.id})" id="remove-btn-${book.id}">
+                        Remove
+                    </button>
+                </li>
+            `;
+        });
+
+        booksList.innerHTML = html;
+    }
+
+    function removeFromWishlist(bookId) {
+        const token = localStorage.getItem('authToken');
+        const removeButton = document.getElementById(`remove-btn-${bookId}`);
+
+        removeButton.disabled = true;
+        removeButton.textContent = 'Removing...';
+
+        fetch(`/api/wishlists/${bookId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    alert('Your session has expired. Please log in again.');
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to remove book from wishlist');
+                }
+
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error removing book from wishlist:', error);
+                alert('Failed to remove book from wishlist. Please try again.');
+
+                removeButton.disabled = false;
+                removeButton.textContent = 'Remove';
+            });
+    }
+
+    function logout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Logout response status:', response.status);
+            })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                alert('You have been logged out successfully.');
+                window.location.href = '/login';
+            });
+    }
+</script>
+</body>
+</html>

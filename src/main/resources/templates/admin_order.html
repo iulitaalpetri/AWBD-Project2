@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Manage Orders</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid white;
+            border-radius: 4px;
+            background: none;
+            cursor: pointer;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: white;
+            color: #333;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        form input, form select {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row > div {
+            flex: 1;
+        }
+
+        .books-selection {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .book-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .book-item:last-child {
+            border-bottom: none;
+        }
+
+        .book-item input[type="checkbox"] {
+            margin-right: 0.5rem;
+            width: auto;
+        }
+
+        .book-info {
+            flex-grow: 1;
+        }
+
+        .book-price {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .update-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .cancel-button {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .order-info {
+            flex-grow: 1;
+        }
+
+        .order-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .order-id {
+            font-family: monospace;
+            background-color: #e9ecef;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .total-price {
+            font-weight: bold;
+            color: #28a745;
+            font-size: 1.2em;
+        }
+
+        .order-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .book-list {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+        }
+
+        .book-list li {
+            padding: 0.25rem 0;
+            border: none;
+            font-size: 0.9em;
+        }
+
+        .user-info {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .form-section {
+            display: none;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #666;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Admin Panel - Orders Management</h1>
+    <nav>
+        <a href="/admin_category">Categories</a>
+        <a href="/admin_book">Books</a>
+        <a href="/admin_author">Authors</a>
+        <a href="/admin_sale">Sale Codes</a>
+        <a href="/admin_user">Users</a>
+        <button onclick="logout()">Logout</button>
+    </nav>
+</header>
+
+<main>
+    <div id="message-container"></div>
+
+    <section id="update-form-section" class="form-section">
+        <h2>Update Order</h2>
+        <form id="order-form">
+            <input type="hidden" id="order-id" />
+
+            <div class="form-row">
+                <div>
+                    <label>Order ID:</label>
+                    <input type="text" id="order-display-id" readonly style="background-color: #f8f9fa;" />
+                </div>
+                <div>
+                    <label>Customer:</label>
+                    <select id="user-select" required>
+                        <option value="">Select Customer</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label>Select Books for this Order:</label>
+                <div id="books-selection" class="books-selection">
+                    <div class="loading">Loading books...</div>
+                </div>
+            </div>
+
+            <button type="submit" class="update-button">Update Order</button>
+            <button type="button" class="cancel-button" onclick="cancelEdit()">Cancel</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Orders List</h2>
+        <ul id="orders-list">
+            <li class="loading">Loading orders...</li>
+        </ul>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2024 Bookstore. All rights reserved.</p>
+</footer>
+
+<script>
+    const apiBase = '/api/orders';
+    const usersApiBase = '/api/users';
+    const booksApiBase = '/api/books';
+
+    let availableUsers = [];
+    let availableBooks = [];
+
+    function checkAuthStatus(requiredRole = null) {
+        const token = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+
+        console.log('Checking auth - Token exists:', !!token, 'User role:', userRole, 'Required role:', requiredRole);
+
+        if (!token) {
+            alert('Please log in to access this page.');
+            window.location.href = '/login';
+            return false;
+        }
+
+        if (requiredRole && userRole !== requiredRole) {
+            alert(`Access denied. This page requires ${requiredRole} role, but you have ${userRole} role.`);
+
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin_user';
+            } else if (userRole === 'USER') {
+                window.location.href = '/home';
+            } else {
+                window.location.href = '/login';
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    function logout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Logout response status:', response.status);
+            })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                alert('You have been logged out successfully.');
+                window.location.href = '/login';
+            });
+    }
+
+    function handleSessionExpiry() {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        if (!checkAuthStatus('ADMIN')) {
+            return;
+        }
+
+        Promise.all([
+            loadUsers(),
+            loadBooks()
+        ]).then(() => {
+            loadOrders();
+        }).catch(err => {
+            console.error('Error loading initial data:', err);
+            showMessage('Failed to load initial data');
+        });
+    });
+
+    function showMessage(message, type = 'error') {
+        const container = document.getElementById('message-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+        messageDiv.textContent = message;
+
+        container.innerHTML = '';
+        container.appendChild(messageDiv);
+
+        setTimeout(() => {
+            container.innerHTML = '';
+        }, 5000);
+    }
+
+    function renderUserOptions() {
+        const select = document.getElementById('user-select');
+        select.innerHTML = '<option value="">Select Customer</option>';
+
+        availableUsers.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.username} (ID: ${user.id})`;
+            select.appendChild(option);
+        });
+    }
+
+    function renderBooksSelection() {
+        const container = document.getElementById('books-selection');
+        container.innerHTML = '';
+
+        if (!availableBooks || availableBooks.length === 0) {
+            container.innerHTML = '<em>No books available</em>';
+            return;
+        }
+
+        availableBooks.forEach(book => {
+            const div = document.createElement('div');
+            div.className = 'book-item';
+            div.innerHTML = `
+                <input type="checkbox" id="book-${book.id}" value="${book.id}" />
+                <div class="book-info">
+                    <strong>${book.title}</strong><br>
+                    <span class="book-price">$${book.price.toFixed(2)}</span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function getSelectedBookIds() {
+        const checkboxes = document.querySelectorAll('#books-selection input[type="checkbox"]:checked');
+        const ids = Array.from(checkboxes).map(cb => parseInt(cb.value)).filter(id => !isNaN(id));
+        return ids;
+    }
+
+    function setSelectedBooks(bookIds) {
+        document.querySelectorAll('#books-selection input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+
+        if (bookIds && bookIds.length > 0) {
+            bookIds.forEach(id => {
+                const checkbox = document.getElementById(`book-${id}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+    }
+
+    function getUserName(userId) {
+        const user = availableUsers.find(u => u.id === userId);
+        return user ? user.username : 'Unknown User';
+    }
+
+    function getBookTitle(bookId) {
+        const book = availableBooks.find(b => b.id === bookId);
+        return book ? book.title : 'Unknown Book';
+    }
+
+    document.getElementById('order-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        updateOrder();
+    });
+
+    function updateOrder() {
+        const token = localStorage.getItem('authToken');
+        const id = document.getElementById('order-id').value;
+        const userId = document.getElementById('user-select').value;
+        const selectedBookIds = getSelectedBookIds();
+
+        if (!id) {
+            showMessage('No order selected for update');
+            return;
+        }
+
+        if (!userId) {
+            showMessage('Please select a customer');
+            return;
+        }
+
+        if (selectedBookIds.length === 0) {
+            showMessage('Please select at least one book');
+            return;
+        }
+
+        const body = {
+            userId: parseInt(userId),
+            bookIds: selectedBookIds
+        };
+
+        fetch(`${apiBase}/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Failed to update order: ${text}`);
+                    });
+                }
+                return res.json();
+            })
+            .then((data) => {
+                if (data) {
+                    showMessage('Order updated successfully!', 'success');
+                    cancelEdit();
+                    loadOrders();
+                }
+            })
+            .catch(err => {
+                console.error('Update error:', err);
+                showMessage(err.message);
+            });
+    }
+
+    function cancelEdit() {
+        document.getElementById('update-form-section').classList.remove('active');
+        document.getElementById('order-id').value = '';
+        document.getElementById('order-display-id').value = '';
+        document.getElementById('user-select').value = '';
+        setSelectedBooks([]);
+    }
+
+    function loadOrders() {
+        const token = localStorage.getItem('authToken');
+        const ordersList = document.getElementById('orders-list');
+        ordersList.innerHTML = '<li class="loading">Loading orders...</li>';
+
+        fetch(apiBase, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to load orders');
+                return res.json();
+            })
+            .then(orders => {
+                if (orders) {
+                    if (availableUsers.length === 0) {
+                        setTimeout(() => {
+                            displayOrders(orders);
+                        }, 500);
+                    } else {
+                        displayOrders(orders);
+                    }
+                }
+            })
+            .catch(err => {
+                showMessage('Failed to load orders.');
+                console.error(err);
+                ordersList.innerHTML = '<li><em>Failed to load orders</em></li>';
+            });
+    }
+
+    function displayOrders(orders) {
+        const list = document.getElementById('orders-list');
+        list.innerHTML = '';
+
+        if (orders.length === 0) {
+            const li = document.createElement('li');
+            li.innerHTML = '<em>No orders found.</em>';
+            list.appendChild(li);
+            return;
+        }
+
+        orders.forEach(order => {
+            const li = document.createElement('li');
+
+            const booksList = order.bookIds && order.bookIds.length > 0
+                ? order.bookIds.map(bookId => getBookTitle(bookId)).join(', ')
+                : 'No books';
+
+            li.innerHTML = `
+                <div class="order-info">
+                    <div><strong>Order ID:</strong> <span class="order-id">${order.id}</span></div>
+                    <div><strong>Customer:</strong> <span class="user-info">${getUserName(order.userId)}</span> (ID: ${order.userId})</div>
+                    <div><strong>Total Price:</strong> <span class="total-price">$${order.totalPrice ? order.totalPrice.toFixed(2) : '0.00'}</span></div>
+                    <div><strong>Order Date:</strong> <span class="order-date">${order.orderDate || 'Unknown'}</span></div>
+                    <div><strong>Books:</strong> ${booksList}</div>
+                </div>
+                <div class="order-actions">
+                    <button class="update-button" onclick="editOrder(${order.id})">Edit</button>
+                    <button class="delete-button" onclick="deleteOrder(${order.id})">Delete</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function editOrder(id) {
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/${id}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to load order details');
+                return res.json();
+            })
+            .then(order => {
+                if (!order) return;
+
+                document.getElementById('order-id').value = order.id;
+                document.getElementById('order-display-id').value = order.id;
+                document.getElementById('user-select').value = order.userId || '';
+
+                setSelectedBooks(order.bookIds);
+                document.getElementById('update-form-section').classList.add('active');
+
+                document.getElementById('update-form-section').scrollIntoView({
+                    behavior: 'smooth'
+                });
+            })
+            .catch(err => {
+                showMessage('Failed to load order details.');
+                console.error(err);
+            });
+    }
+
+    function deleteOrder(id) {
+        if (!confirm(`Are you sure you want to delete order #${id}? This action cannot be undone.`)) {
+            return;
+        }
+
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Failed to delete order: ${text}`);
+                    });
+                }
+                showMessage(`Order #${id} deleted successfully!`, 'success');
+                loadOrders();
+            })
+            .catch(err => {
+                console.error('Delete error:', err);
+                showMessage(err.message);
+            });
+    }
+
+    function loadUsers() {
+        const token = localStorage.getItem('authToken');
+
+        return fetch(usersApiBase, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to load users');
+                return res.json();
+            })
+            .then(users => {
+                if (!users) return;
+                availableUsers = users.filter(user => user.role !== 'ADMIN');
+                renderUserOptions();
+                console.log('Users loaded:', availableUsers.length);
+            })
+            .catch(err => {
+                console.error('Failed to load users:', err);
+                showMessage('Failed to load users: ' + err.message);
+                throw err;
+            });
+    }
+
+    function loadBooks() {
+        const token = localStorage.getItem('authToken');
+
+        return fetch(booksApiBase, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to load books');
+                return res.json();
+            })
+            .then(books => {
+                if (!books) return;
+                availableBooks = books;
+                renderBooksSelection();
+                console.log('Books loaded:', availableBooks.length);
+            })
+            .catch(err => {
+                console.error('Failed to load books:', err);
+                showMessage('Failed to load books: ' + err.message);
+                throw err;
+            });
+    }
+</script>
+</body>
+</html>

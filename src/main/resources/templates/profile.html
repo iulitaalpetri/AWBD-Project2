@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>User Profile - Bookstore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            margin: 0;
+        }
+        nav {
+            margin-top: 1rem;
+        }
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            background: none;
+            border: 1px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        nav a:hover, nav button:hover {
+            background-color: white;
+            color: #333;
+        }
+        main {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .profile-info {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .profile-info h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .profile-info p {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            color: #856404;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 1rem;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="text"],
+        input[type="password"] {
+            margin-top: 0.3rem;
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button.update-btn {
+            margin-top: 2rem;
+            padding: 0.75rem;
+            font-size: 1rem;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button.update-btn:hover {
+            background-color: #0056b3;
+        }
+        button.update-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .alert {
+            padding: 0.75rem 1.25rem;
+            margin-top: 1rem;
+            border: 1px solid transparent;
+            border-radius: 0.25rem;
+            animation: slideDown 0.3s ease-out;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .password-note {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.2rem;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>User Profile</h1>
+    <nav>
+        <button id="logout-button" onclick="logout()">Logout</button>
+        <a href="/home">Home</a>
+        <a href="/cart">Cart</a>
+        <a href="/wishlist">Wishlist</a>
+        <a href="/orderhistory">Order History</a>
+    </nav>
+</header>
+
+<main>
+    <div id="loading" class="loading">Loading profile...</div>
+    <div id="message-container"></div>
+
+    <div id="profile-content" style="display: none;">
+        <div class="profile-info">
+            <h2>Current Profile Information</h2>
+            <p><strong>Username:</strong> <span id="current-username">-</span></p>
+            <p><strong>Role:</strong> <span id="current-role">-</span></p>
+        </div>
+
+        <div class="warning-box">
+            <strong>Important:</strong> After updating your profile, you will be automatically logged out for security purposes. You will need to log in again with your new credentials.
+        </div>
+
+        <h2>Update Profile</h2>
+        <form id="profile-form">
+            <label for="username">New Username</label>
+            <input type="text" id="username" name="username" required />
+
+            <label for="password">New Password</label>
+            <input type="password" id="password" name="password" />
+            <div class="password-note">Leave blank to keep current password unchanged. Must be at least 8 characters if provided.</div>
+
+            <button type="submit" class="update-btn" id="update-button">Update Profile</button>
+        </form>
+    </div>
+</main>
+
+<script>
+    let currentUser = null;
+
+    function checkAuthStatus(requiredRole = null) {
+        const token = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+
+        console.log('Checking auth - Token exists:', !!token, 'User role:', userRole, 'Required role:', requiredRole);
+
+        if (!token) {
+            alert('Please log in to access this page.');
+            window.location.href = '/login';
+            return false;
+        }
+
+        if (requiredRole && userRole !== requiredRole) {
+            alert(`Access denied. This page requires ${requiredRole} role, but you have ${userRole} role.`);
+
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin_user';
+            } else {
+                window.location.href = '/login';
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    function handleSessionExpiry() {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        if (!checkAuthStatus('USER')) {
+            return;
+        }
+
+        loadCurrentUserProfile();
+    });
+
+    function showMessage(message, type = 'success') {
+        const container = document.getElementById('message-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `alert alert-${type}`;
+        messageDiv.textContent = message;
+
+        container.innerHTML = '';
+        container.appendChild(messageDiv);
+
+        if (type === 'success') {
+            setTimeout(() => {
+                if (container.contains(messageDiv)) {
+                    container.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+    }
+
+    function showError(message) {
+        showMessage(message, 'error');
+    }
+
+    function showLoading(isLoading) {
+        document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
+        document.getElementById('profile-content').style.display = isLoading ? 'none' : 'block';
+    }
+
+    function loadCurrentUserProfile() {
+        const token = localStorage.getItem('authToken');
+        const username = localStorage.getItem('username');
+
+        console.log('Loading profile for user:', username);
+        console.log('Token exists:', !!token);
+        console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+
+        if (!token || !username) {
+            showError('Authentication information not found. Please log in again.');
+            handleSessionExpiry();
+            return;
+        }
+
+        console.log('Using fallback method to find user by username');
+        findUserByUsername(username, token);
+    }
+
+    function findUserByUsername(username, token) {
+        let currentId = 1;
+        const maxId = 100;
+
+        function tryNextId() {
+            if (currentId > maxId) {
+                showError('Could not find your user profile. Please try logging out and logging back in.');
+                showLoading(false);
+                return;
+            }
+
+            fetch(`/api/users/${currentId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    console.log(`Trying user ID ${currentId}, response status: ${response.status}`);
+
+                    if (response.status === 401) {
+                        console.error('Unauthorized - token may be invalid');
+                        handleSessionExpiry();
+                        return null;
+                    }
+                    if (response.status === 403) {
+                        console.log(`Forbidden access to user ${currentId}, trying next...`);
+                        currentId++;
+                        tryNextId();
+                        return null;
+                    }
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 404) {
+                        currentId++;
+                        tryNextId();
+                        return null;
+                    } else {
+                        console.error('Unexpected response:', response.status);
+                        currentId++;
+                        tryNextId();
+                        return null;
+                    }
+                })
+                .then(userData => {
+                    if (userData && userData.username === username) {
+                        console.log('Found matching user:', userData);
+                        currentUser = userData;
+
+                        document.getElementById('current-username').textContent = userData.username;
+                        document.getElementById('current-role').textContent = userData.role;
+                        document.getElementById('username').value = userData.username;
+
+                        showLoading(false);
+                        return userData;
+                    } else if (userData) {
+                        console.log(`User ${userData.username} doesn't match ${username}, trying next...`);
+                        currentId++;
+                        tryNextId();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error finding user:', error);
+                    currentId++;
+                    if (currentId <= maxId) {
+                        tryNextId();
+                    } else {
+                        showError('Could not find your user profile.');
+                        showLoading(false);
+                    }
+                });
+        }
+
+        tryNextId();
+        return Promise.resolve(null);
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (!currentUser || !currentUser.username) {
+            showError('User information not found. Please refresh the page and try again.');
+            return;
+        }
+
+        const newUsername = document.getElementById('username').value.trim();
+        const newPassword = document.getElementById('password').value;
+
+        if (!newUsername) {
+            showError('Username cannot be empty.');
+            return;
+        }
+
+        if (newPassword && newPassword.length < 8) {
+            showError('Password must be at least 8 characters long.');
+            return;
+        }
+
+        const updateButton = document.getElementById('update-button');
+        updateButton.disabled = true;
+        updateButton.textContent = 'Updating...';
+
+        performUpdate(newUsername, newPassword, updateButton);
+    });
+
+    function performUpdate(newUsername, newPassword, updateButton) {
+        if (!currentUser.id) {
+            showError('User ID not found. Please refresh the page and try again.');
+            updateButton.disabled = false;
+            updateButton.textContent = 'Update Profile';
+            return;
+        }
+
+        const token = localStorage.getItem('authToken');
+        const updateData = {
+            id: currentUser.id,
+            username: newUsername,
+            role: currentUser.role
+        };
+
+        if (newPassword && newPassword.trim()) {
+            updateData.password = newPassword;
+        }
+
+        fetch(`/api/users/${currentUser.id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+        })
+            .then(async response => {
+                if (response.status === 401 || response.status === 403) {
+                    handleSessionExpiry();
+                    return null;
+                }
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    if (response.status === 409) {
+                        throw new Error('Username already exists. Please choose another username.');
+                    }
+                    throw new Error('Failed to update profile: ' + (errorText || response.status));
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (!result) return;
+
+                currentUser.username = result.username;
+
+                document.getElementById('current-username').textContent = result.username;
+                document.getElementById('username').value = result.username;
+
+                document.getElementById('password').value = '';
+
+                showMessage('Profile updated successfully! You will be logged out in 3 seconds for security purposes.');
+
+                setTimeout(() => {
+                    performSecurityLogout();
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Update error:', error);
+                showError(error.message || 'Error updating profile. Please try again.');
+            })
+            .finally(() => {
+                updateButton.disabled = false;
+                updateButton.textContent = 'Update Profile';
+            });
+    }
+
+    function performSecurityLogout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                showMessage('You have been logged out successfully. Please log in again with your new credentials.');
+                setTimeout(() => window.location.href = '/login', 2000);
+            });
+    }
+
+    function logout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                showMessage('You have been logged out successfully.');
+                setTimeout(() => window.location.href = '/login', 1000);
+            });
+    }
+</script>
+</body>
+</html>

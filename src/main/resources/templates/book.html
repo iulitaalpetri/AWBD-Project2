@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Book Details - Bookstore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav {
+            margin-top: 1rem;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            background: none;
+            border: 1px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: white;
+            color: #333;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #loading-message {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        #error-message {
+            text-align: center;
+            color: red;
+            font-size: 1.1rem;
+            margin: 1rem 0;
+        }
+
+        .book-details {
+            display: none;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .book-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        .book-author {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .book-author a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .book-author a:hover {
+            text-decoration: underline;
+        }
+
+        .book-price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: green;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .book-stock {
+            color: #28a745;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .book-stock.out-of-stock {
+            color: #dc3545;
+        }
+
+        .book-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+            flex: 1;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-primary:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+
+        /* Alert styles for messages */
+        .alert {
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            border-radius: 0.25rem;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .book-actions {
+                flex-direction: column;
+            }
+
+            .book-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Reviews Section Styles */
+        .reviews-section {
+            margin-top: 3rem;
+            border-top: 2px solid #007bff;
+            padding-top: 2rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 2rem;
+        }
+
+        .reviews-section h3 {
+            color: #333;
+            margin-bottom: 2rem;
+            font-size: 1.6rem;
+            text-align: center;
+        }
+
+        .add-review-form {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .add-review-form h4 {
+            margin-bottom: 1rem;
+            color: #333;
+            font-size: 1.2rem;
+        }
+
+        .rating-input {
+            margin-bottom: 1rem;
+        }
+
+        .rating-input label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 0.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .star {
+            font-size: 1.5rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .star:hover,
+        .star.active {
+            color: #ffc107;
+        }
+
+        #review-content {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            resize: vertical;
+            font-family: Arial, sans-serif;
+            min-height: 80px;
+            box-sizing: border-box;
+        }
+
+        #review-content:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .review-item {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+
+        .review-user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .review-rating {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .review-content {
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .review-author {
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .reviews-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: #e9ecef;
+            border-radius: 6px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        #loading-reviews, #no-reviews {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Book Details</h1>
+    <nav>
+        <button id="logout-button" style="display: none;" onclick="logout()">Logout</button>
+        <a href="/login" id="login-link">Login</a>
+        <a href="/register" id="register-link">Register</a>
+        <a href="/home">Home</a>
+        <a href="/profile">Profile</a>
+        <a href="/cart">Cart</a>
+        <a href="/wishlist">Wishlist</a>
+        <a href="/orderhistory">Order History</a>
+    </nav>
+</header>
+
+<main>
+    <div id="message-container"></div>
+
+    <div id="loading-message">Loading book details...</div>
+    <div id="error-message" style="display: none;">
+        Failed to load book details. Please try again later.
+    </div>
+
+    <div id="book-details" class="book-details">
+        <div id="book-title" class="book-title"></div>
+        <div id="book-author" class="book-author"></div>
+        <div id="book-price" class="book-price"></div>
+        <div id="book-stock" class="book-stock"></div>
+
+        <div class="book-actions">
+            <button id="add-to-cart-btn" class="btn btn-primary" onclick="addToCart()">
+                Add to Cart
+            </button>
+            <button id="add-to-wishlist-btn" class="btn btn-secondary" onclick="addToWishlist()">
+                Add to Wishlist
+            </button>
+        </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <div id="reviews-section" class="reviews-section" style="display: none;">
+        <h3>Reviews</h3>
+
+        <!-- Add Review Form -->
+        <div class="add-review-form">
+            <h4>Write a Review</h4>
+            <div class="rating-input">
+                <label>Rating:</label>
+                <div class="star-rating">
+                    <span class="star" data-rating="1">★</span>
+                    <span class="star" data-rating="2">★</span>
+                    <span class="star" data-rating="3">★</span>
+                    <span class="star" data-rating="4">★</span>
+                    <span class="star" data-rating="5">★</span>
+                </div>
+                <input type="hidden" id="selected-rating" value="5">
+            </div>
+            <textarea id="review-content" placeholder="Share your thoughts about this book..." rows="4"></textarea>
+            <button id="submit-review-btn" class="btn btn-primary" onclick="submitReview()">Submit Review</button>
+        </div>
+
+        <!-- Reviews Stats -->
+        <div id="reviews-stats" class="reviews-stats" style="display: none;">
+            <div class="stat-item">
+                <div id="total-reviews" class="stat-value">0</div>
+                <div class="stat-label">Total Reviews</div>
+            </div>
+            <div class="stat-item">
+                <div id="average-rating" class="stat-value">0.0</div>
+                <div class="stat-label">Average Rating</div>
+            </div>
+        </div>
+
+        <!-- Reviews List -->
+        <div id="reviews-list">
+            <div id="loading-reviews">Loading reviews...</div>
+            <div id="no-reviews" style="display: none;">No reviews yet. Be the first to review this book!</div>
+        </div>
+    </div>
+</main>
+
+<script>
+    let currentBook = null;
+    let isInCart = false;
+    let isInWishlist = false;
+
+    function getBookId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('id');
+    }
+
+    function showMessage(message, type = 'error') {
+        const container = document.getElementById('message-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `alert alert-${type}`;
+        messageDiv.textContent = message;
+
+        container.innerHTML = '';
+        container.appendChild(messageDiv);
+
+        setTimeout(() => {
+            if (container.contains(messageDiv)) {
+                container.removeChild(messageDiv);
+            }
+        }, 5000);
+    }
+
+    function getAuthToken() {
+        return window.authToken ||
+            (typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null) ||
+            'simulated-auth-token-12345';
+    }
+
+    function setAuthToken(token) {
+        window.authToken = token;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('authToken', token);
+        }
+    }
+
+    function removeAuthToken() {
+        window.authToken = null;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('authToken');
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        if (!checkAuthStatus('USER')) {
+            return;
+        }
+
+        const bookId = getBookId();
+        if (!bookId) {
+            document.getElementById('loading-message').style.display = 'none';
+            document.getElementById('error-message').textContent = 'No book ID provided';
+            document.getElementById('error-message').style.display = 'block';
+            return;
+        }
+
+        loadBookDetails(bookId);
+    });
+
+    function checkAuthStatus(requiredRole = null) {
+        const token = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+
+        console.log('Checking auth - Token exists:', !!token, 'User role:', userRole, 'Required role:', requiredRole);
+
+        if (!token) {
+            alert('Please log in to access this page.');
+            window.location.href = '/login';
+            return false;
+        }
+
+        if (requiredRole && userRole !== requiredRole) {
+            alert(`Access denied. This page requires ${requiredRole} role, but you have ${userRole} role.`);
+
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin_user';
+            } else if (userRole === 'USER') {
+                window.location.href = '/home';
+            } else {
+                window.location.href = '/login';
+            }
+            return false;
+        }
+
+        document.getElementById('login-link').style.display = 'none';
+        document.getElementById('register-link').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'inline';
+
+        return true;
+    }
+
+    function loadBookDetails(bookId) {
+        const token = getAuthToken();
+
+        fetch(`/api/books/${bookId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    showMessage('Your session has expired. Please log in again.', 'error');
+                    removeAuthToken();
+                    setTimeout(() => window.location.href = '/login', 2000);
+                    return;
+                }
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Book not found');
+                    }
+                    throw new Error('Failed to fetch book details');
+                }
+                return response.json();
+            })
+            .then(book => {
+                if (!book) return;
+                currentBook = book;
+                displayBookDetails(book);
+                checkCartAndWishlistStatus(bookId);
+            })
+            .catch(error => {
+                console.error('Error loading book details:', error);
+                document.getElementById('loading-message').style.display = 'none';
+                document.getElementById('error-message').textContent = error.message;
+                document.getElementById('error-message').style.display = 'block';
+            });
+    }
+
+    function displayBookDetails(book) {
+        document.getElementById('loading-message').style.display = 'none';
+        document.getElementById('book-details').style.display = 'block';
+
+        document.title = `${book.title} - Bookstore`;
+
+        document.getElementById('book-title').textContent = book.title;
+        document.getElementById('book-author').innerHTML = `by <a href="/author?id=${book.authorId}">${book.author}</a>`;
+        document.getElementById('book-price').textContent = `$${book.price ? book.price.toFixed(2) : '0.00'}`;
+
+        const stockElement = document.getElementById('book-stock');
+        if (book.stock > 0) {
+            stockElement.innerHTML = `In Stock (${book.stock})`;
+            stockElement.className = 'book-stock';
+        } else {
+            stockElement.innerHTML = 'Out of Stock';
+            stockElement.className = 'book-stock out-of-stock';
+        }
+
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        if (book.stock <= 0) {
+            addToCartBtn.disabled = true;
+            addToCartBtn.textContent = 'Out of Stock';
+        }
+
+        document.getElementById('reviews-section').style.display = 'block';
+        loadReviews(book.id);
+        initializeStarRating();
+    }
+
+    function initializeStarRating() {
+        const stars = document.querySelectorAll('.star');
+        const ratingInput = document.getElementById('selected-rating');
+
+        updateStarDisplay(5);
+
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                ratingInput.value = rating;
+                updateStarDisplay(rating);
+            });
+
+            star.addEventListener('mouseenter', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                updateStarDisplay(rating);
+            });
+        });
+
+        document.querySelector('.star-rating').addEventListener('mouseleave', function() {
+            updateStarDisplay(parseInt(ratingInput.value));
+        });
+    }
+
+    function updateStarDisplay(rating) {
+        const stars = document.querySelectorAll('.star');
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.classList.add('active');
+            } else {
+                star.classList.remove('active');
+            }
+        });
+    }
+
+    function checkCartAndWishlistStatus(bookId) {
+        const token = getAuthToken();
+
+        fetch('/api/cart', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch cart');
+            })
+            .then(cart => {
+                if (cart && cart.bookIds && Array.isArray(cart.bookIds)) {
+                    isInCart = cart.bookIds.includes(parseInt(bookId));
+                    updateCartButton();
+                }
+            })
+            .catch(error => {
+                console.error('Error checking cart status:', error);
+            });
+
+        fetch('/api/wishlists/user', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch wishlist');
+            })
+            .then(wishlistBooks => {
+                if (Array.isArray(wishlistBooks)) {
+                    isInWishlist = wishlistBooks.some(book => book.id === parseInt(bookId));
+                    updateWishlistButton();
+                }
+            })
+            .catch(error => {
+                console.error('Error checking wishlist status:', error);
+            });
+    }
+
+    function updateCartButton() {
+        const button = document.getElementById('add-to-cart-btn');
+        if (isInCart) {
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-success');
+            button.textContent = 'Already in Cart';
+            button.disabled = true;
+        }
+    }
+
+    function updateWishlistButton() {
+        const button = document.getElementById('add-to-wishlist-btn');
+        if (isInWishlist) {
+            button.classList.remove('btn-secondary');
+            button.classList.add('btn-warning');
+            button.textContent = 'In Wishlist';
+            button.disabled = true;
+        }
+    }
+
+    function addToCart() {
+        if (!currentBook) return;
+
+        const token = getAuthToken();
+        if (!token) {
+            showMessage('Please log in to add books to cart.', 'error');
+            return;
+        }
+
+        if (isInCart) {
+            showMessage('This book is already in your cart!', 'error');
+            return;
+        }
+
+        if (currentBook.stock <= 0) {
+            showMessage('This book is out of stock!', 'error');
+            return;
+        }
+
+        const button = document.getElementById('add-to-cart-btn');
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Adding...';
+
+        fetch(`/api/cart/${currentBook.id}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    showMessage('Your session has expired. Please log in again.', 'error');
+                    removeAuthToken();
+                    setTimeout(() => window.location.href = '/login', 2000);
+                    return Promise.reject('Authentication failed');
+                }
+
+                if (response.status === 409) {
+                    isInCart = true;
+                    updateCartButton();
+                    return Promise.reject('Book already in cart');
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to add to cart');
+                }
+
+                return response.json();
+            })
+            .then(updatedCart => {
+                if (updatedCart) {
+                    isInCart = true;
+                    updateCartButton();
+                    showMessage('Book added to cart successfully!', 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding to cart:', error);
+                if (error !== 'Book already in cart' && error !== 'Authentication failed') {
+                    showMessage('Error adding to cart: ' + error.message, 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
+    }
+
+    function addToWishlist() {
+        if (!currentBook) return;
+
+        const token = getAuthToken();
+        if (!token) {
+            showMessage('Please log in to add books to wishlist.', 'error');
+            return;
+        }
+
+        if (isInWishlist) {
+            showMessage('This book is already in your wishlist!', 'error');
+            return;
+        }
+
+        const button = document.getElementById('add-to-wishlist-btn');
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Adding...';
+
+        fetch(`/api/wishlists/${currentBook.id}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    showMessage('Your session has expired. Please log in again.', 'error');
+                    removeAuthToken();
+                    setTimeout(() => window.location.href = '/login', 2000);
+                    return Promise.reject('Authentication failed');
+                }
+
+                if (response.status === 409) {
+                    isInWishlist = true;
+                    updateWishlistButton();
+                    showMessage('Book is already in your wishlist!', 'error');
+                    return Promise.reject('Book already in wishlist');
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to add to wishlist');
+                }
+
+                return response.json();
+            })
+            .then(addedBook => {
+                if (addedBook) {
+                    isInWishlist = true;
+                    updateWishlistButton();
+                    showMessage('Book added to wishlist successfully!', 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding to wishlist:', error);
+                if (error !== 'Book already in wishlist' && error !== 'Authentication failed') {
+                    showMessage('Error adding to wishlist: ' + error.message, 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
+    }
+
+    function logout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Logout response status:', response.status);
+            })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                alert('You have been logged out successfully.');
+                window.location.href = '/login';
+            });
+    }
+
+    function loadReviews(bookId) {
+        const token = getAuthToken();
+
+        fetch(`/api/reviews/book/${bookId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.json();
+                } else if (response.status === 404) {
+                    return [];
+                } else if (response.status === 401 || response.status === 403) {
+                    throw new Error('Authentication failed');
+                } else {
+                    throw new Error('Failed to fetch reviews');
+                }
+            })
+            .then(reviews => {
+                displayReviews(reviews);
+            })
+            .catch(error => {
+                console.error('Error loading reviews:', error);
+                document.getElementById('loading-reviews').style.display = 'none';
+                document.getElementById('no-reviews').style.display = 'block';
+            });
+    }
+
+    function displayReviews(reviews) {
+        const reviewsList = document.getElementById('reviews-list');
+        document.getElementById('loading-reviews').style.display = 'none';
+
+        const existingReviews = reviewsList.querySelectorAll('.review-item');
+        existingReviews.forEach(item => item.remove());
+
+        if (!reviews || reviews.length === 0) {
+            document.getElementById('no-reviews').style.display = 'block';
+            document.getElementById('reviews-stats').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('no-reviews').style.display = 'none';
+
+        const totalReviews = reviews.length;
+        const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews;
+
+        document.getElementById('reviews-stats').style.display = 'flex';
+        document.getElementById('total-reviews').textContent = totalReviews;
+        document.getElementById('average-rating').textContent = averageRating.toFixed(1);
+
+        let reviewsHtml = '';
+        reviews.forEach((review, index) => {
+            const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+
+            let userName = 'Anonymous User';
+            if (review.username) {
+                userName = review.username;
+            } else if (review.userId) {
+                userName = `User ${review.userId}`;
+            }
+
+            reviewsHtml += `
+                <div class="review-item">
+                    <div class="review-header">
+                        <div class="review-user-info">
+                            <div>
+                                <div class="review-author">${userName}</div>
+                                <div class="review-rating">
+                                    <span>${stars}</span>
+                                    <span>(${review.rating}/5)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="review-content">${review.content || 'No content'}</div>
+                </div>
+            `;
+        });
+
+        reviewsList.insertAdjacentHTML('beforeend', reviewsHtml);
+    }
+
+    function submitReview() {
+        if (!currentBook) return;
+
+        const token = getAuthToken();
+        if (!token) {
+            showMessage('Please log in to write a review.', 'error');
+            return;
+        }
+
+        const rating = parseInt(document.getElementById('selected-rating').value);
+        const content = document.getElementById('review-content').value.trim();
+
+        if (!rating || rating < 1 || rating > 5) {
+            showMessage('Please select a valid rating (1-5 stars).', 'error');
+            return;
+        }
+
+        if (!content || content.length < 3) {
+            showMessage('Please write a review with at least 3 characters.', 'error');
+            return;
+        }
+
+        const button = document.getElementById('submit-review-btn');
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Submitting...';
+
+        const reviewData = {
+            content: content,
+            rating: rating
+        };
+
+        console.log('Submitting review:', reviewData);
+        console.log('URL:', `/api/reviews/book/${currentBook.id}`);
+
+        fetch(`/api/reviews/book/${currentBook.id}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reviewData)
+        })
+            .then(response => {
+                console.log('Submit review response status:', response.status);
+
+                if (response.status === 401 || response.status === 403) {
+                    showMessage('Your session has expired. Please log in again.', 'error');
+                    removeAuthToken();
+                    setTimeout(() => window.location.href = '/login', 2000);
+                    return Promise.reject('Authentication failed');
+                }
+
+                if (response.status === 201 || response.status === 200) {
+                    console.log('Review submission successful');
+                    return response.json().catch(() => ({ success: true }));
+                }
+
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Review submission failed with status:', response.status);
+                        console.error('Error response body:', text);
+
+                        try {
+                            const errorJson = JSON.parse(text);
+                            if (errorJson.message) {
+                                throw new Error(errorJson.message);
+                            }
+                        } catch (parseError) {
+                        }
+
+                        throw new Error(`Server error (${response.status}): ${text}`);
+                    });
+                }
+
+                return response.json();
+            })
+            .then(result => {
+                console.log('Review submission result:', result);
+                if (result) {
+                    showMessage('Review submitted successfully!', 'success');
+
+                    document.getElementById('review-content').value = '';
+                    document.getElementById('selected-rating').value = '5';
+                    updateStarDisplay(5);
+
+                    loadReviews(currentBook.id);
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting review:', error);
+                if (error !== 'Authentication failed') {
+                    showMessage('Error submitting review: ' + error.message, 'error');
+                }
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.textContent = originalText;
+            });
+    }
+</script>
+</body>
+</html>

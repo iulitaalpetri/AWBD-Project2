@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Manage Sales</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid white;
+            border-radius: 4px;
+            background: none;
+            cursor: pointer;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: white;
+            color: #333;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        form input, form textarea, form select {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row > div {
+            flex: 1;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: auto;
+            margin-right: 0.5rem;
+        }
+
+        .categories-selection {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .category-item input[type="checkbox"] {
+            margin-right: 0.5rem;
+            width: auto;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .create-button {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .update-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .cancel-button {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .sale-info {
+            flex-grow: 1;
+        }
+
+        .sale-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .sale-code {
+            font-family: monospace;
+            background-color: #e9ecef;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .category-tags {
+            margin-top: 0.5rem;
+        }
+
+        .category-tag {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #666;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Admin Panel - Sales Management</h1>
+    <nav>
+        <a href="/admin_category">Categories</a>
+        <a href="/admin_book">Books</a>
+        <a href="/admin_author">Authors</a>
+        <a href="/admin_order">Orders</a>
+        <a href="/admin_user">Users</a>
+        <button onclick="logout()">Logout</button>
+    </nav>
+</header>
+
+<main>
+    <div id="message-container"></div>
+
+    <section>
+        <h2>Create or Update Sale</h2>
+        <form id="sale-form">
+            <input type="hidden" id="sale-id" />
+            <input type="text" id="sale-code" placeholder="Sale Code (auto-generated)" readonly style="background-color: #f8f9fa;" />
+
+            <div class="form-row">
+                <div>
+                    <input type="number" id="discount-percentage" placeholder="Discount Percentage" min="0" max="100" step="0.01" required />
+                </div>
+                <div>
+                    <input type="date" id="start-date" required />
+                </div>
+                <div>
+                    <input type="date" id="end-date" required />
+                </div>
+            </div>
+
+            <textarea id="description" placeholder="Description (optional)" rows="3"></textarea>
+
+            <div>
+                <label>Select Categories:</label>
+                <div id="categories-selection" class="categories-selection">
+                    <!-- Categories will be loaded here -->
+                </div>
+            </div>
+
+            <button type="submit" class="create-button" id="submit-btn">Create Sale</button>
+            <button type="button" class="cancel-button" onclick="resetForm()">Cancel</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Active Sales List</h2>
+        <ul id="sales-list"></ul>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2024 Bookstore. All rights reserved.</p>
+</footer>
+
+<script>
+    const apiBase = '/api/sales';
+    const categoriesApiBase = '/api/categories';
+
+    let availableCategories = [];
+
+    function checkAuthStatus(requiredRole = null) {
+        const token = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+
+        console.log('Checking auth - Token exists:', !!token, 'User role:', userRole, 'Required role:', requiredRole);
+
+        if (!token) {
+            alert('Please log in to access this page.');
+            window.location.href = '/login';
+            return false;
+        }
+
+        if (requiredRole && userRole !== requiredRole) {
+            alert(`Access denied. This page requires ${requiredRole} role, but you have ${userRole} role.`);
+
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin_user';
+            } else if (userRole === 'USER') {
+                window.location.href = '/home';
+            } else {
+                window.location.href = '/login';
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    function logout() {
+        const token = localStorage.getItem('authToken');
+
+        fetch('/api/users/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                console.log('Logout response status:', response.status);
+            })
+            .catch(error => {
+                console.error('Logout API error:', error);
+            })
+            .finally(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+
+                alert('You have been logged out successfully.');
+                window.location.href = '/login';
+            });
+    }
+
+    function handleSessionExpiry() {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        if (!checkAuthStatus('ADMIN')) {
+            return;
+        }
+
+        loadCategories();
+        loadSales();
+    });
+
+    function showMessage(message, type = 'error') {
+        const container = document.getElementById('message-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+        messageDiv.textContent = message;
+
+        container.innerHTML = '';
+        container.appendChild(messageDiv);
+
+        setTimeout(() => {
+            container.innerHTML = '';
+        }, 5000);
+    }
+
+    function loadCategories() {
+        const token = localStorage.getItem('authToken');
+        console.log('Loading categories...');
+
+        fetch(categoriesApiBase, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    throw new Error(`Failed to load categories: ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(categories => {
+                if (!categories) return;
+                console.log('Loaded categories:', categories);
+                availableCategories = categories;
+                renderCategoriesSelection();
+            })
+            .catch(err => {
+                console.error('Failed to load categories:', err);
+                showMessage('Failed to load categories: ' + err.message);
+            });
+    }
+
+    function renderCategoriesSelection() {
+        const container = document.getElementById('categories-selection');
+        container.innerHTML = '';
+
+        if (!availableCategories || availableCategories.length === 0) {
+            container.innerHTML = '<em>No categories available</em>';
+            return;
+        }
+
+        console.log('Rendering categories:', availableCategories);
+
+        availableCategories.forEach(category => {
+            if (category && category.id && category.name) {
+                const div = document.createElement('div');
+                div.className = 'category-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="category-${category.id}" value="${category.id}" />
+                    <label for="category-${category.id}">${category.name}</label>
+                `;
+                container.appendChild(div);
+            }
+        });
+    }
+
+    function getSelectedCategoryIds() {
+        const checkboxes = document.querySelectorAll('#categories-selection input[type="checkbox"]:checked');
+        const ids = Array.from(checkboxes).map(cb => parseInt(cb.value)).filter(id => !isNaN(id));
+        console.log('Selected category IDs:', ids);
+        return ids;
+    }
+
+    function setSelectedCategories(categoryIds) {
+        document.querySelectorAll('#categories-selection input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+
+        if (categoryIds && categoryIds.length > 0) {
+            categoryIds.forEach(id => {
+                const checkbox = document.getElementById(`category-${id}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+    }
+
+    document.getElementById('sale-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const token = localStorage.getItem('authToken');
+        const id = document.getElementById('sale-id').value;
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${apiBase}/${id}` : apiBase;
+
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+
+        if (new Date(startDate) >= new Date(endDate)) {
+            showMessage('Start date must be before end date');
+            return;
+        }
+
+        const body = {
+            discountPercentage: parseFloat(document.getElementById('discount-percentage').value),
+            startDate: startDate,
+            endDate: endDate,
+            description: document.getElementById('description').value || null,
+            isActive: true,
+            categoryIds: getSelectedCategoryIds()
+        };
+
+        const selectedCategoryIds = getSelectedCategoryIds();
+        if (selectedCategoryIds.length > 0) {
+            body.categoryIds = selectedCategoryIds;
+        } else {
+            body.categoryIds = null;
+        }
+
+        if (id) {
+            body.id = parseInt(id);
+        }
+
+        console.log('Sending request body:', JSON.stringify(body, null, 2));
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Failed to save sale: ${text}`);
+                    });
+                }
+                return res.json();
+            })
+            .then((data) => {
+                if (data) {
+                    showMessage(id ? 'Sale updated successfully!' : 'Sale created successfully!', 'success');
+                    resetForm();
+                    loadSales();
+                }
+            })
+            .catch(err => {
+                console.error('Save error:', err);
+                showMessage(err.message);
+            });
+    });
+
+    function resetForm() {
+        document.getElementById('sale-id').value = '';
+        document.getElementById('sale-code').value = '';
+        document.getElementById('discount-percentage').value = '';
+        document.getElementById('start-date').value = '';
+        document.getElementById('end-date').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('submit-btn').textContent = 'Create Sale';
+        setSelectedCategories([]);
+    }
+
+    function loadSales() {
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/active`, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to load active sales');
+                return res.json();
+            })
+            .then(activeSales => {
+                if (activeSales) {
+                    displaySales(activeSales);
+                }
+            })
+            .catch(err => {
+                showMessage('Failed to load active sales.');
+                console.error(err);
+            });
+    }
+
+    function displaySales(sales) {
+        const list = document.getElementById('sales-list');
+        list.innerHTML = '';
+
+        if (sales.length === 0) {
+            const li = document.createElement('li');
+            li.innerHTML = '<em>No active sales found.</em>';
+            list.appendChild(li);
+            return;
+        }
+
+        sales.forEach(sale => {
+            const li = document.createElement('li');
+
+
+            const categoryNames = sale.categoryIds && sale.categoryIds.length > 0
+                ? sale.categoryIds.map(id => {
+                    const category = availableCategories.find(cat => cat.id === id);
+                    return category ? category.name : `Category ${id}`;
+                })
+                : [];
+
+            const categoryTags = categoryNames.length > 0
+                ? categoryNames.map(name => `<span class="category-tag">${name}</span>`).join('')
+                : '<em>No categories</em>';
+
+            li.innerHTML = `
+                <div class="sale-info">
+                    <div><strong>Sale Code:</strong> <span class="sale-code">${sale.saleCode}</span></div>
+                    <div><strong>Discount:</strong> ${sale.discountPercentage}%</div>
+                    <div><strong>Period:</strong> ${sale.startDate} to ${sale.endDate}</div>
+                    <div><strong>Description:</strong> ${sale.description || '<em>No description</em>'}</div>
+                    <div><strong>Status:</strong> <span class="status-badge status-${sale.isActive ? 'active' : 'inactive'}">${sale.isActive ? 'Active' : 'Inactive'}</span></div>
+                    <div class="category-tags"><strong>Categories:</strong> ${categoryTags}</div>
+                </div>
+                <div class="sale-actions">
+                    <button class="update-button" onclick="editSale(${sale.id})">Edit</button>
+                    <button class="delete-button" onclick="deleteSale(${sale.id}, '${sale.saleCode}')">Delete</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function editSale(id) {
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/${id}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to load sale details');
+                return res.json();
+            })
+            .then(sale => {
+                if (!sale) return;
+
+                document.getElementById('sale-id').value = sale.id;
+                document.getElementById('sale-code').value = sale.saleCode;
+                document.getElementById('discount-percentage').value = sale.discountPercentage;
+                document.getElementById('start-date').value = sale.startDate;
+                document.getElementById('end-date').value = sale.endDate;
+                document.getElementById('description').value = sale.description || '';
+                document.getElementById('submit-btn').textContent = 'Update Sale';
+
+                setSelectedCategories(sale.categoryIds);
+
+                document.getElementById('sale-form').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(err => {
+                showMessage('Failed to load sale details.');
+                console.error(err);
+            });
+    }
+
+    function deleteSale(id, saleCode) {
+        if (!confirm(`Are you sure you want to delete sale "${saleCode}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        const token = localStorage.getItem('authToken');
+
+        fetch(`${apiBase}/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(res => {
+                if (res.status === 401 || res.status === 403) {
+                    handleSessionExpiry();
+                    return;
+                }
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Failed to delete sale: ${text}`);
+                    });
+                }
+                showMessage(`Sale "${saleCode}" deleted successfully!`, 'success');
+                loadSales();
+            })
+            .catch(err => {
+                console.error('Delete error:', err);
+                showMessage(err.message);
+            });
+    }
+</script>
+</body>
+</html>
