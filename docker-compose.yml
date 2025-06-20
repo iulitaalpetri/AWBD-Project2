@@ -1,6 +1,16 @@
 version: '3.8'
 
 services:
+  # Eureka Server pentru Service Discovery
+  eureka-server:
+    image: steeltoeoss/eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - bookstore-network
+
+  # Baza de date partajată
   postgres:
     image: postgres:15-alpine
     container_name: bookstore-db
@@ -15,17 +25,61 @@ services:
     networks:
       - bookstore-network
 
-  app:
-    build: .
-    container_name: bookstore-app
+  # Authentication Microservice
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
     depends_on:
       - postgres
+      - eureka-server
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Bookstore
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: parola
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_APPLICATION_NAME: auth-service
     ports:
-      - "8080:8080"
+      - "8081:8081"
+    networks:
+      - bookstore-network
+    volumes:
+      - ./config:/app/config
+
+  # Bookstore Microservice
+  bookstore-service:
+    build: ./bookstore-service
+    container_name: bookstore-service
+    depends_on:
+      - postgres
+      - eureka-server
+      - auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Bookstore
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: parola
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_APPLICATION_NAME: bookstore-service
+      AUTH_SERVICE_URL: http://auth-service:8081
+    ports:
+      - "8082:8082"
+    networks:
+      - bookstore-network
+    volumes:
+      - ./config:/app/config
+
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    depends_on:
+      - eureka-server
+      - auth-service
+      - bookstore-service
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_APPLICATION_NAME: api-gateway
+    ports:
+      - "8080:8080"  # Gateway-ul va fi punctul principal de intrare
     networks:
       - bookstore-network
 
@@ -35,3 +89,5 @@ networks:
 
 volumes:
   postgres_data:
+
+
