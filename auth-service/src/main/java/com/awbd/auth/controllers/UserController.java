@@ -3,7 +3,6 @@ package com.awbd.auth.controllers;
 import com.awbd.auth.DTOs.LoginRequestDTO;
 import com.awbd.auth.DTOs.RegisterRequestDTO;
 import com.awbd.auth.DTOs.UserDTO;
-
 import com.awbd.auth.exceptions.user.InvalidRoleException;
 import com.awbd.auth.exceptions.user.UserNotFoundException;
 import com.awbd.auth.mappers.UserMapper;
@@ -18,14 +17,9 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
-
-
 
 @RestController
 @RequestMapping("/api/users")
@@ -43,12 +37,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-
-    public ResponseEntity<UserDTO> registerUser(
-            @RequestBody
-            @Valid
-            RegisterRequestDTO registerRequest) {
-
+    public ResponseEntity<UserDTO> registerUser(@RequestBody @Valid RegisterRequestDTO registerRequest) {
         User newUser = new User();
         newUser.setUsername(registerRequest.getUsername());
         newUser.setPassword(registerRequest.getPassword());
@@ -66,7 +55,6 @@ public class UserController {
 
         return ResponseEntity.created(URI.create("/api/users/" + createdUser.getId()))
                 .body(userMapper.toDto(createdUser));
-
     }
 
     @PostMapping("/login")
@@ -75,6 +63,7 @@ public class UserController {
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
+
             String encodedPassword = Base64.getEncoder()
                     .encodeToString(loginRequest.getPassword().getBytes());
 
@@ -98,11 +87,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUser(
-            @PathVariable Long id,
-            @RequestHeader("Authorization") String authHeader) {
-        System.out.println("Authorization header: " + authHeader);
-
+    public ResponseEntity<UserDTO> getUser(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             logger.error("Invalid authorization header");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -117,11 +102,9 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // un user poate vedea doar datele sale
         if (role != User.Role.ADMIN) {
             User authenticatedUser = userService.findByUsername(username)
                     .orElseThrow(() -> new UserNotFoundException("Authenticated user not found"));
-
 
             if (authenticatedUser.getId() != id) {
                 logger.warn("User {} attempted to access details of user with ID {}", username, id);
@@ -129,7 +112,6 @@ public class UserController {
             }
         }
 
-        // adminul poate vedea datele oricui
         User user = userService.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User with ID " + id + " not found."));
 
@@ -138,14 +120,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> updateUser(
-            @PathVariable
-            Long id,
-
-            @RequestBody
-            @Valid
-            UserDTO userDto) {
-
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody @Valid UserDTO userDto) {
         if (userDto.getId() != null && !id.equals(userDto.getId())) {
             logger.warn("ID mismatch: path ID {} doesn't match body ID {}", id, userDto.getId());
             throw new RuntimeException("Id from path does not match with id from request");
@@ -167,13 +142,9 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-
+    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
             String token = authHeader.substring(7);
-
             tokenBlacklistService.invalidateToken(token);
             logger.info("Token invalidat cu succes");
         }
@@ -193,7 +164,44 @@ public class UserController {
     }
 
 
+    @GetMapping("/{id}/info")
+    public ResponseEntity<UserDTO> getUserInfo(@PathVariable Long id) {
+        logger.info("Microservice request: getting user info for ID {}", id);
+
+        User user = userService.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        UserDTO dto = userMapper.toDto(user);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PostMapping("/validate")
+    public ResponseEntity<Map<String, Object>> validateUser(@RequestParam Long userId) {
+        logger.info("Microservice request: validating user {}", userId);
+
+        Optional<User> userOptional = userService.findById(userId);
+        Map<String, Object> response = new HashMap<>();
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            response.put("valid", true);
+            response.put("username", user.getUsername());
+            response.put("role", user.getRole().name());
+        } else {
+            response.put("valid", false);
+            response.put("message", "User not found");
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/by-username/{username}")
+    public ResponseEntity<UserDTO> getUserByUsername(@PathVariable String username) {
+        logger.info("Microservice request: getting user by username {}", username);
+
+        User user = userService.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return ResponseEntity.ok(userMapper.toDto(user));
+    }
 }
-
-
-

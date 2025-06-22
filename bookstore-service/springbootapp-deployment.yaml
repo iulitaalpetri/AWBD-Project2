@@ -16,7 +16,7 @@ spec:
         - name: image-api
           image: awbd2021/lab3b
           ports:
-            - containerPort: 8081
+            - containerPort: 8080
           env:
             - name: REDIS_HOST
               value: "envoy"

@@ -2,7 +2,8 @@ package com.awbd.bookstore.controllers;
 
 import com.awbd.bookstore.DTOs.BookDTO;
 import com.awbd.bookstore.DTOs.CartDTO;
-import com.awbd.bookstore.exceptions.token.InvalidTokenException;
+import com.awbd.bookstore.DTOs.UserDTO;
+import com.awbd.bookstore.clients.AuthClient;
 import com.awbd.bookstore.mappers.BookMapper;
 import com.awbd.bookstore.mappers.CartMapper;
 import com.awbd.bookstore.models.Book;
@@ -24,20 +25,36 @@ public class CartController {
     private CartService cartService;
     private CartMapper cartMapper;
     private BookMapper bookMapper;
+    private AuthClient authClient;
     private static final Logger logger = LoggerFactory.getLogger(CartController.class);
 
-    public CartController(CartService cartService, CartMapper cartMapper, BookMapper bookMapper){
+    public CartController(CartService cartService, CartMapper cartMapper, BookMapper bookMapper, AuthClient authClient){
         this.cartService = cartService;
         this.cartMapper = cartMapper;
         this.bookMapper = bookMapper;
+        this.authClient = authClient;
     }
 
     @PostMapping("/{bookId}")
     public ResponseEntity<CartDTO> addBookToCart(
             @PathVariable Long bookId,
-            @RequestHeader("User-Id") Long userId) { // SCHIMBAT: folosim direct User-Id din header
+            @RequestHeader("User-Id") Long userId) {
 
         logger.info("Adding book {} to cart for user {}", bookId, userId);
+
+        // VALIDARE PRIN AUTH-SERVICE
+        try {
+            Map<String, Object> userValidation = authClient.validateUser(userId);
+            Boolean isValid = (Boolean) userValidation.get("valid");
+            if (isValid == null || !isValid) {
+                logger.error("Invalid user: {}", userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            logger.info("User {} validated successfully", userId);
+        } catch (Exception e) {
+            logger.error("Error validating user {}: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
 
         Cart cart = cartService.getCartByUserId(userId)
                 .orElseGet(() -> cartService.createCart(userId));
@@ -50,8 +67,19 @@ public class CartController {
 
     @GetMapping("/books")
     public ResponseEntity<List<BookDTO>> getCartBooks(@RequestHeader("User-Id") Long userId) {
-
         logger.info("Getting cart books for user {}", userId);
+
+        // VALIDARE PRIN AUTH-SERVICE
+        try {
+            Map<String, Object> userValidation = authClient.validateUser(userId);
+            Boolean isValid = (Boolean) userValidation.get("valid");
+            if (isValid == null || !isValid) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        } catch (Exception e) {
+            logger.error("Error validating user: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
 
         Cart cart = cartService.getCartByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId));
@@ -64,7 +92,6 @@ public class CartController {
 
     @GetMapping("/total")
     public ResponseEntity<Double> getTotalPrice(@RequestHeader("User-Id") Long userId) {
-
         logger.info("Getting total price for user {}", userId);
 
         Cart cart = cartService.getCartByUserId(userId)
@@ -108,13 +135,11 @@ public class CartController {
         try {
             logger.info("Creating cart for user: {}", userId);
 
-            // Verifică dacă cart-ul există deja
             if (cartService.getCartByUserId(userId).isPresent()) {
                 logger.info("Cart already exists for user: {}", userId);
                 return ResponseEntity.ok("Cart already exists");
             }
 
-            // Creează cart nou
             Cart cart = cartService.createCart(userId);
             logger.info("Cart created with ID: {} for user: {}", cart.getId(), userId);
 
@@ -135,5 +160,24 @@ public class CartController {
                 .orElseGet(() -> cartService.createCart(userId));
 
         return ResponseEntity.ok(cartMapper.toDto(cart));
+    }
+
+    @GetMapping("/user-info")
+    public ResponseEntity<Map<String, Object>> getCartWithUserInfo(@RequestHeader("User-Id") Long userId) {
+        try {
+            UserDTO userInfo = authClient.getUserInfo(userId);
+
+            Cart cart = cartService.getCartByUserId(userId)
+                    .orElseGet(() -> cartService.createCart(userId));
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("cart", cartMapper.toDto(cart));
+            response.put("user", userInfo);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error getting cart with user info: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
     }
 }

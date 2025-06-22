@@ -1,5 +1,6 @@
 package com.awbd.auth.services;
 
+import com.awbd.auth.clients.BookstoreClient;
 import com.awbd.auth.exceptions.user.*;
 import com.awbd.auth.models.User;
 import com.awbd.auth.repositories.UserRepository;
@@ -16,13 +17,13 @@ import java.util.Optional;
 @Transactional
 public class UserService {
     private UserRepository userRepository;
-    private final RestTemplate restTemplate;
+    private BookstoreClient bookstoreClient;
 
     private static final int MIN_PASSWORD_LENGTH = 8;
 
-    public UserService(UserRepository userRepository, RestTemplate restTemplate) {
+    public UserService(UserRepository userRepository, BookstoreClient bookstoreClient) {
         this.userRepository = userRepository;
-        this.restTemplate = restTemplate;
+        this.bookstoreClient = bookstoreClient;
     }
 
     private boolean isPasswordStrong(String password) {
@@ -69,6 +70,10 @@ public class UserService {
         try {
             User savedUser = userRepository.save(user);
 
+            // ADAUGĂ ASTA: Forțează commit în baza de date
+            userRepository.flush();
+
+            // Acum apelează bookstore-service
             createUserResourcesInBookstoreService(savedUser.getId());
 
             return savedUser;
@@ -80,13 +85,9 @@ public class UserService {
 
     private void createUserResourcesInBookstoreService(Long userId) {
         try {
-            String bookstoreServiceUrl = "http://localhost:8082";
 
-            String cartUrl = bookstoreServiceUrl + "/api/cart/create?userId=" + userId;
-            restTemplate.postForObject(cartUrl, null, String.class);
-
-            String wishlistUrl = bookstoreServiceUrl + "/api/wishlist/create?userId=" + userId;
-            restTemplate.postForObject(wishlistUrl, null, String.class);
+            bookstoreClient.createCart(userId);
+            bookstoreClient.createWishlist(userId);
 
             System.out.println("Cart și Wishlist create pentru user: " + userId);
 

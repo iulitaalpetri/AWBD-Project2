@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Eureka Server pentru Service Discovery
+  # EUREKA SERVER
   eureka-server:
     image: steeltoeoss/eureka-server
     container_name: eureka-server
@@ -10,7 +10,7 @@ services:
     networks:
       - bookstore-network
 
-  # Baza de date partajată
+  # Database
   postgres:
     image: postgres:15-alpine
     container_name: bookstore-db
@@ -25,7 +25,7 @@ services:
     networks:
       - bookstore-network
 
-  # Authentication Microservice
+  # Auth Service
   auth-service:
     build: ./auth-service
     container_name: auth-service
@@ -38,14 +38,13 @@ services:
       SPRING_DATASOURCE_PASSWORD: parola
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka
       SPRING_APPLICATION_NAME: auth-service
+      BOOKSTORE_SERVICE_URL: http://bookstore-service:8082  # ADĂUGAT
     ports:
       - "8081:8081"
     networks:
       - bookstore-network
-    volumes:
-      - ./config:/app/config
 
-  # Bookstore Microservice
+  # Bookstore Service
   bookstore-service:
     build: ./bookstore-service
     container_name: bookstore-service
@@ -64,24 +63,6 @@ services:
       - "8082:8082"
     networks:
       - bookstore-network
-    volumes:
-      - ./config:/app/config
-
-
-  api-gateway:
-    build: ./api-gateway
-    container_name: api-gateway
-    depends_on:
-      - eureka-server
-      - auth-service
-      - bookstore-service
-    environment:
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka
-      SPRING_APPLICATION_NAME: api-gateway
-    ports:
-      - "8080:8080"  # Gateway-ul va fi punctul principal de intrare
-    networks:
-      - bookstore-network
 
 networks:
   bookstore-network:
@@ -89,5 +70,3 @@ networks:
 
 volumes:
   postgres_data:
-
-
